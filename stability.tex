@@ -1,0 +1,44 @@
+\section{Stability}
+Note that in RLS, randomness occurs in each update of the parameters just as MCMC. The randomness provides a tool to measure how robust the optimizer is. We run RLS independently for 1000 times, and get an empirical distribution for the AOD retrieval for each pixel. A highly concentrated distribution gives a narrower error bar, and implies a more reliable result. Since RLS is "greedy", multiple runs yields to only "local" distribution around the optimum, rather than the whole posterior distribution, thus its variance is smaller than MCMC. Figure \ref{fig:stability_boot} shows a comparison in terms of errorbar between MCMC and RLS.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.6\textwidth]{stability_boot}
+    \caption{1000 runs of RLS compared with 1000 MCMC samples; RLS has less variance and less bias than MCMC}
+    \label{fig:stability_boot}
+\end{figure}
+
+Another potential source of instability is the "jump size" of the proposal distribution in each update. "Jump size" is denoted $\Delta$ (see Table \ref{tab:randomized_local_search}), which describes the standard deviation of the difference between $\tau_p$ and its neighbours. Our experiment shows the final retrieval is somewhat insensitive to how far away each jump makes, which is desirable in real applications. However we do observe that when $\Delta$ is extremely small or extremely large, the results are not as good as those in between. When "jump size" is too large, almost all proposals are rejected and thus parameters basically stay at the initial values; when "jump size" is too small, almost all proposals are accepted, but parameters don't get meaningful movings. As one can see in Figure \ref{fig:stability_delta}, the results for $\Delta=0.001$ (extremely small) and $\Delta=10$ (extremely large) are very similar. A summary of their difference in performance is described in Table \ref{tab:performance_stability}.
+
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.6\textwidth]{stability_delta}
+    \caption{Random Local Search with Different Jump Sizes; In general results are insensitive to the choice of $\Delta$; nonetheless the best result is achieved with moderate $\Delta$ due to a good trade-off between exploration and exploitation.}
+    \label{fig:stability_delta}
+\end{figure}
+
+\begin{table}[h!]
+    \caption{Stability of Proposal Distribution}
+    \label{tab:performance_stability}
+    \begin{center}
+        \begin{tabular}{|c|c|c|c|c|c|}
+            \hline
+            & Correlation & RMSE & Mean Bias\\
+            \hline
+            \hline
+            $\Delta=0.001$ & 0.930 & 0.042 & 0.006 \\
+            \hline
+            $\Delta=0.01$ & 0.930 & 0.041 &  -0.001 \\
+            \hline
+            $\Delta=0.05$ & 0.940 & 0.041 & -0.016\\
+            \hline
+            $\Delta=0.1$& 0.933 & 0.044 & -0.015 \\
+            \hline
+            $\Delta=1$ & 0.915 &  0.045 & 0.001 \\
+            \hline
+            $\Delta=10$ & 0.918 &  0.045 & 0.005 \\
+            \hline
+        \end{tabular}
+    \end{center}
+\end{table}

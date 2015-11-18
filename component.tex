@@ -1,0 +1,24 @@
+\section{Aerosol Type Retrieval}
+From Figure \ref{fig:component} we can see, Component \# 2, 8 and 19 are the most prevailing aerosols in Baltimore-DC region. They are sph\_nonabsorb\_0.12, sph\_absorb\_0.12\_ssa\_green\_0.9 and medium grains, which are categorized as "Small Spherical", "Small Spherical with Moderate Absorbing" and "Medium Dust" (see \cite{kahn2015}). We find the same three components are consistently retrieved for all 5 days.
+
+We also find that the component mixing percentages tend to be sparse. This is achieved by our equivalent Dirichlet proposal distributions. The $\alpha$ in our proposal distributions is the re-normalized mean of the adjacent pixels percentages. The values are less than one, leading to the sparsity in our component retrievals. We find that NCA results doesn't manifest this sparsity.
+
+The lack of aerosol type information in MISR radiance as well as reliable ground measurement are the major difficulties in validating component retrievals. \cite{kahn2015} pointed out: "validating satellite aerosol-type retrievals is more challenging than testing AOD results, because aerosol type is a more complex quantity, and ground truth data are far less numerous and generally not as robust". Therefore we might want to judiciously choose quantities that relate to aerosol type, but are directly measurable or available. Note that in Equation \eqref{equ:mixing2}, AOD is a linear function of component mixing percentage $f_{n,\lambda_0}$ at reference band. Although $f_{n,\lambda_0}$ is not observable, the AODs at different wavelengths depends on $f_{n,\lambda_0}$. These AODs are available in ground measurement, and can be used as a surrogate validation for $f_{n,\lambda_0}$. Figure \ref{fig:aod_4band} shows a good agreement with ground measurement in almost all four bands, except the NIR band. If our component retrievals were not correct, the AOD in different wavelengths would also likely tend to be incorrect.
+
+The overestimation in NIR band, we believe, again is due to disproportionate assignment of reflectance to aerosol in the observed signal. This phenomena in turn suggests that our threshold function proposed in Section \ref{overestimate} to upper bound path radiance should take into consideration the wavelength dependence. In NIR band, the radiance coming from the land, such as soil, is much larger than that in visible bands. A different level of scene signal should be expected.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=\textwidth]{theta}
+    \caption{Component proportion is retrieved at each pixel; Component \# 2, 8 and 19 are predominant; Sum of percentages equals to one for any given pixel. Similar component retrievals are observed for other dates.}
+    \label{fig:component}
+\end{figure}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=\linewidth]{aod_4band}
+    \caption{AOD is derived for all four bands; the result of each band is validated against ground measurement; Good agreement in visible bands indicates that our component retrievals are self-consistent and reliable.}
+    \label{fig:aod_4band}
+\end{figure}
+
+In future work, we will refine the algorithm and validate our aerosol type retrievals against ground measurement quantitatively, such as DISCOVER-AQ.

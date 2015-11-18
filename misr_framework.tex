@@ -1,0 +1,230 @@
+\section{MISR Aerosol Retrieval}
+\subsection{Aerosol Reflectance}
+The key to retrieve AOD is to correctly obtain the aerosol reflectance. However the at-sensor reflectance usually includes not only radiance directly reflected from aerosols, but also radiance that's transmitted from surface (see Figure \ref{fig:ref_cartoon}). MISR retrieval algorithm is able to decompose the at-sensor signal into the sum of atmospheric signal (which only contains aerosol information) and surface-leaving signal. Once atmospheric signal is obtained, the algorithm exhaustedly searches for combinations of AOD and aerosol types that would minimize the error between model and signal.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=.8\linewidth]{ref_cartoon}
+    \caption{Top-of-atmosphere Reflectance Decomposition}
+    \label{fig:ref_cartoon}
+\end{figure}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=.8\linewidth]{brdfdefinition}
+    \caption{Bidirectional Reflectance Distribution Function (BRDF) and Bidirectional Reflectance Factor (BRF)}
+    \label{fig:brdf_definition}
+\end{figure}
+
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=.8\linewidth]{geometry}
+    \caption{Schematic of sun/surface/satellite remote sensing geometry, defining the angles as viewed from the surface target. Dotted lines are projections of solid lines. The incident red arrow forms solar zenith $\theta_0$ and outgoing arrow forms satellite viewing zenith angle $\theta$. The dashed angle represents the relative azimuth angle $\phi-\phi_0$. $\mu_0 :=\cos\theta_0$, $\mu :=\cos\theta$.}
+    \label{fig:geometry}
+\end{figure}
+
+When MISR retrieval algorithm seeks to separate atmospheric signal from surface signal, different physical models are used to exploit different angular and spectral shapes of the surface. For dark water, water-leaving radiance is negligible and treated as zero. For Dense Dark Vegetation (DDV), a special angular shape for surface is used to model its bidirectional reflectance factor (BRF)\cite{rahman1993}. For heterogeneous land, no particular assumptions is made about BRF, but the BRF is assumed to be representable by top empirical orthogonal functions (EOF) derived from its spatial contrast. Figure \ref{fig:brdf_definition} explains BRF. The directional dependence of the surface reflectance on viewing angle is often characterized by comparing the radiance of the actual surface to the radiance of an ideal Lambertian surface illuminated and viewed in the same manner as the surface of interest. The ratio is called bidirectional reflectance factor, or BRF.
+
+Let's see how MISR algorithm decomposes at-sensor reflectance. In Equation \eqref{equ:toa_ref} and \eqref{equ:toa_simplified}, $L^{TOA}_{\lambda,x,y}$ is the top-of-atmosphere radiance observed by MISR, a function of light wavelength $\lambda$, AOD $\tau_\lambda$, incident and reflection angles $\theta_0$, $\theta$, $\phi-\phi_0$, and location coordinate $x$, $y$; $L^{atm}_{\lambda,x,y}$ is reflectance solely from aerosol scattering (also known as path radiance or atmospheric reflectance). The rest of the terms on the right hand side is surface reflectance. The angle geometries are depicted in Figure \ref{fig:geometry}.
+
+\begin{multline} 
+\label{equ:toa_ref}
+L^{TOA}_{\lambda,x,y}(-\mu,\mu_0,\phi-\phi_0;\tau_\lambda)
+= L^{atm}_{\lambda,x,y}(-\mu,\mu_0,\phi-\phi_0;\tau_\lambda) + e^{-\tau_\lambda/\mu} \cdot L^{surf}_{\lambda,x,y}(-\mu,\mu_0,\phi-\phi_0;\tau_\lambda) \\ 
++ \int_{0}^{1}\int_{0}^{2\pi}T_{\lambda,x,y}(-\mu,-\mu^\prime,\phi-\phi^\prime;\tau_\lambda) \cdot L^{surf}_{\lambda,x,y}(-\mu^\prime,\mu_0,\phi^\prime-\phi_0;\tau_\lambda)d\mu^\prime d\phi^\prime
+\end{multline}
+where
+\begin{multline*}
+L^{surf}_{\lambda,x,y}(-\mu,\mu_0,\phi-\phi_0;\tau_\lambda) \\
+= \frac{1}{\pi}\int_{0}^{1}\int_{0}^{2\pi} R_{\lambda,x,y}(-\mu,\mu^\prime,\phi-\phi^\prime)\cdot L^{inc}_{\lambda,x,y}(\mu^\prime,\mu_0,\phi^\prime-\phi_0;\tau_\lambda)\mu^\prime d\mu^\prime d\phi^\prime 
+\end{multline*}
+
+$ R_{\lambda,x,y}(-\mu,\mu^\prime,\phi-\phi^\prime)$  is the surface BRF. $T_{\lambda,x,y}(-\mu,-\mu^\prime,\phi-\phi^\prime;\tau_\lambda)$ is upward diffuse transmittance. If Lambertian surface is assumed, Equation \eqref{equ:toa_ref} can be expressed as
+
+\begin{multline}
+\label{equ:toa_simplified}
+L^{TOA}_{\lambda,x,y}(-\mu,\mu_0,\phi-\phi_0;\tau_\lambda) = L^{atm}_{\lambda,x,y}(-\mu,\mu_0,\phi-\phi_0;\tau_\lambda) + L^{surf\_trans}_{\lambda,x,y}(-\mu,\mu_0,\phi-\phi_0;\tau_\lambda) \\ =
+L^{atm}_{\lambda,x,y}(-\mu,\mu_0,\phi-\phi_0;\tau_\lambda) + \frac{ \mu_0 F_0 \left[ e^{-\tau_\lambda/\mu_0} + t_\lambda(\mu_0)  \right] r_{x,y,\lambda} (-\mu,\mu_0,\phi-\phi_0) \left[ e^{-\tau_\lambda/\mu} + t_\lambda(-\mu)  \right] } { 1-A_{x,y,\lambda} S_\lambda }
+\end{multline}
+
+Equation \eqref{equ:toa_simplified} is based on Equation \eqref{equ:toa_ref}, but considers sunlight reflected once, twice, and so forth between atmosphere and surface. $A_{x,y,\lambda}$ is the surface albedo, $S_\lambda$ is the bottom-of-atmosphere bihemispherical reflectance (BHR); $-\mu$ denotes the cosine of reflection angle $\theta$ with a minus sign meaning upward direction. $F_0$ is the sun radiance. The first term represents atmospheric reflectance without interaction with the surface. The second term represents surface reflectance that is transmitted to the sensor. Both terms relate to AOD $\tau_\lambda$. $t_{\lambda}$ and $r_{x,y,\lambda}$ can be numerically derived by solving differential equations in RT theory (See Appendix \ref{apd:rt} for details). Therefore as long as $L^{TOA}_{\lambda,x,y}(-\mu,\mu_0,\phi-\phi_0;\tau_\lambda)$ is properly measured, AOD $\tau_\lambda$ can be inversely derived.
+
+Note that $L^{atm}_{\lambda,x,y}(-\mu,\mu_0,\phi-\phi_0;\tau_\lambda)$ can be calculated as above if only we assume certain aerosol type, because different aerosol species have different scattering and absorption characteristics. In reality, we may have a combination of different aerosols in the atmosphere. As aforementioned, they are categorized by shape, size, SSA and etc. The MISR science team select 8 major species out of 21 potential aerosol types in their standard retrieval products. The 8 selected components are then mixed in different percentages to represent particular aerosol combination. Figure \ref{fig:component2} lists the physical parameters for the 8 major aerosol types.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=\linewidth]{component1}
+    \caption{MISR Version22 Aerosol Component Optical Models \cite{kahn2015}}
+    \label{fig:component2}
+\end{figure}
+
+%\begin{figure}[h!]
+%    \centering
+%    \includegraphics[width=\linewidth]{acp}
+%    \caption{Pure particle types in the Aerosol Climatology Product \cite{misr_ancillary}}
+%    \label{fig:acp}
+%\end{figure}
+
+Given a mixture of different aerosol types, how do we model the combined reflectance? To address this problem, \cite{abdou1997} proposed a practical method: "a modified linear mixing theory". Let $L_{n,ss}^{black}$ be the TOA equivalent reflectance resulting from single-scattered radiation over a black surface, including contributions from both Rayleigh scattering and aerosol particle n. $L_{n,ms}^{black}$ is the multiple-scattered field under the same conditions. Equation \eqref{equ:mixing} preserves the standard linear mixing formulation for single-scattered radiation and for radiation which has interacted with the surface. It reduces the magnitude of the multiple-scattered field in the path radiance field when absorbing aerosols are present.
+
+\begin{multline}
+L^{TOA}_{mixture}(-\mu, \mu_0, \phi-\phi_0; \tau_\lambda) = \\
+L_{Rayleigh,ms}^{black}(-\mu, \mu_0, \phi-\phi_0; \tau_{Rayleigh}) +
+\sum_{n}^{}f_{n,\lambda} L_{n,ss}^{black}(-\mu, \mu_0, \phi-\phi_0; \tau_\lambda)  + \\
+\sum_{n}^{} f_{n,\lambda} \frac{\omega_{mix,\lambda}}{\omega_{n,\lambda}} e^{-\tau_\lambda |\omega_{mix,\lambda} - \omega_{n,\lambda}|} \left[ L_{n,ms}^{black}(-\mu, \mu_0, \phi-\phi_0; \tau_\lambda) - L_{Rayleigh,ms}^{black}(-\mu, \mu_0, \phi-\phi_0; \tau_{Rayleigh}) \right] \\
++ \sum_{n}^{} f_{n,\lambda} L_{n,surf} (-\mu, \mu_0, \phi-\phi_0; \tau_\lambda)
+\label{equ:mixing}
+\end{multline}
+
+\begin{align}
+\begin{split}
+f_{n,\lambda} = \frac{k_{n,\lambda}/k_{n,\lambda_0} f_{n,\lambda_0}}{ \sum_{n}^{} k_{n,\lambda}/k_{n,\lambda_0} f_{n,\lambda_0}} \\ 
+\omega_{mix,\lambda} = \sum_{n}^{}f_{n,\lambda} \omega_{n,\lambda}\\
+\tau_\lambda = \tau_{\lambda_0} \sum_{n}^{} \frac{k_{n,\lambda}}{k_{n,\lambda_0}} f_{n,\lambda_0}
+\end{split}
+\label{equ:mixing2}
+\end{align}
+
+$\lambda_0$ is the reference band, usually chosen to be green band. $L^{black}$ is essentially $L^{atm}$, which stands for pure atmospheric reflectance without interacting with the surface. $f_{n,\lambda}$ is the relative amount, $k_{n,\lambda}$ is the extinction cross section, and $\omega_{n,\lambda}$ is SSA, all at wavelength $\lambda$ for component $n$. Now given $\tau_{\lambda_0}$ and $f_{n,\lambda_0}$ at reference band (558 nm), the atmospheric radiance at (a different) wavelength $\lambda$ can be fully modeled.
+
+\subsection{Empirical Orthogonal Function}
+
+In Equation \eqref{equ:toa_simplified}, surface is assumed Lambertian, which in many cases is not true, due to extremely high heterogeneity in different locations of the earth. This especially makes the second term of \eqref{equ:toa_simplified} hard to calculate. To work around this problem, the MISR team assumes that the surface reflectance can be expressed as the sum of a few Empirical Orthogonal Functions (EOFs), as shown in Equation \eqref{equ:eof}.
+
+\begin{multline}
+\label{equ:eof}
+\overline{L^{TOA}_{x,y,\lambda}}(-\mu,\mu_0,\phi-\phi_0;\tau_\lambda) = \overline{L^{atm}_{x,y,\lambda}}(-\mu,\mu_0,\phi-\phi_0;\tau_\lambda) + \overline{L^{surf\_trans}_{x,y,\lambda}}(-\mu,\mu_0,\phi-\phi_0;\tau_\lambda) \\ \approx L^{atm}_{\lambda}(-\mu,\mu_0,\phi-\phi_0;\tau_\lambda)  + \sum\limits_{n=1}^{N_{max}} \alpha_n u_n(-\mu,\mu_0,\phi-\phi_0;\lambda)
+\end{multline}
+
+In reality, MISR can only detect $L^{TOA}_{\lambda,x,y}$ from 9 different viewing angles, so Equation \eqref{equ:eof} is degenerated into Equation \eqref{equ:eof_matrix}:
+
+\begin{equation}
+\label{equ:eof_matrix}
+\begin{pmatrix} L_1 \\ L_2 \\ ... \\L_9 \end{pmatrix} ^{TOA} = \begin{pmatrix} L_1 \\ L_2 \\ ... \\L_9 \end{pmatrix} ^{atm} + \begin{pmatrix} U_{11} & U_{12} & ... & U_{1N_{max}}\\U_{21} & U_{22} & ... & U_{2N_{max}} \\ ... & ... & ... & ... \\U_{91} & U_{92} & ... & U_{9N_{max}} \end{pmatrix} \begin{pmatrix} \alpha_1 \\ \alpha_2 \\ ... \\ \alpha_{N_{max}} \end{pmatrix}
+\end{equation}
+
+where $U_{\bullet n} = u_n$\\
+\\
+Equation \eqref{equ:eof_matrix} is applied for every $(x,y)$ in AOD retrieval. Currently our default retrieval resolution is 4.4-km (i.e. the grid space of $(x,y)$ coordinate system), higher than image raw resolution 1.1km. Out of $4\times4$ array of 1.1-km subregions making up a 4.4-km region, it is assumed that AOD does not vary significantly, and the spatial contrast in different subregions mainly comes from the surface reflectance. If we align all 16 samples of vectors, and subtract the darkest one out of all other 15 vectors, we therefore get a matrix of $9\times15$, which represents angular variance that only comes from surface reflectance (see Figure \ref{fig:eof_simplified}). In practice, this sample matrix has low column rank, and a small number ($<3$) of EOFs would be sufficient to explain more than $95\%$ of its column variance.
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width = 0.8\textwidth]{eof_simplified}
+\caption{Concept of Sample Matrix and Derivation of EOF}
+\label{fig:eof_simplified}
+\end{figure}
+
+Compared to water and DDV, "heterogeneous land" (HeterSurf) algorithm does not assumption any angular shape for surface reflectance, which renders it most attractive and most widely used. In this work, we adopt the same method where the empirically derived EOFs are assumed to be adequate to represent surface reflectance.
+
+For the first term of Equation \eqref{equ:eof}, the MISR team is able to pre-compute its value for many potential combinations of AOD and aerosol type, and then store the results as a look-up table (LUT) in a dataset, which is known as the Simulated MISR Ancillary Radiative Transfer (SMART) dataset. We denote the left hand side of Equation \eqref{equ:eof} as $L_{cp}$ and the right hand side of Equation \eqref{equ:eof} as $L_c^{RT}(\tau_p,\theta_p)$. $p$ is pixel index; $c$ is band/camera index; $\tau_p$ is AOD at pixel $p$, and $\theta_p$ is component mixing vector at pixel $p$ where $|\theta_p|_1=1$. The aerosol types are prescribed to be the aforementioned 8 species. The goal of aerosol retrieval is to find the best $\tau_p$ and $\theta_p$, such that the difference between $L_{cp}$ and $L_c^{RT}(\tau_p,\theta_p)$ is minimal for each pixel and channel. Denote the optimal $\tau_p: \tau_p^\star$ and optimal $\theta_p:\theta_p^\star$, then the mathematical solution is the following:
+
+\begin{equation}
+\tau_p^\star, \theta_p^\star = \min\limits_{\tau_p,\theta_p} \sum\limits_{c=1}^{C}\frac{\left(L_{cp}-  L_{c}^{RT}\left(\tau_p,\theta_p\right)\right)^2}{2\sigma_c^2} 
+\label{equ:non-bayesian}
+\end{equation}
+
+    \begin{figure}[h!]
+        \centering
+        \includegraphics[width=.9\textwidth]{overlay_2011_06_02_Baltimore_CD-random-noprior}
+        \caption{Non-Bayesian AOD Retrieval - Spatial Discontinuity}
+        \label{fig:aod_CD-random_noprior}
+    \end{figure}
+
+Solving Equation \eqref{equ:non-bayesian}, we show AOD retrievals in Figure \ref{fig:aod_CD-random_noprior}. One may spot that lots of spatial discontinuities occur in adjacent pixels, which could result from noisy input data. The mismatch in color for circles (ground measurement) and squares (model derived AOD) also indicates our calculation overestimates the AOD level. As a comparison to Bayesian approach which will be discussed later, we call the result here the non-Bayesian solution.
+
+One may note that the objective function has $\sigma_c^2$ as a normalization constant for each channel. The reason is that the radiance in different bands and angles can have very different numerical scales. In order to prevent channels with stronger signals overwhelming those with weaker ones, we add this extra parameter $\sigma_c^2$ to balance them out. We also inherently assume the residuals in each channel is uncorrelated since all $\sigma_c^2$ are free to set. We argue that although this assumption is not perfect, it agrees with our retrieval results reasonably well. See the correlation matrix for residuals of all 36 channels in Figure \ref{fig:cor}.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.8\textwidth]{cormat}
+    \caption{Strong diagnal elements indicate correlations across channels are weak. Moderate correlations indeed exist between same angles in different bands. NIR band has least coupling with other visible bands.}
+    \label{fig:cor}
+\end{figure}
+
+\label{misr_framework}
+
+\clearpage
+\subsection{EOF Intuition}
+We want to provide some justifications why the EOF method would work. In a nutshell, the algorithm seeks to decompose the signal $L^{TOA}$ in $\mathcal{R}^9$ into non-negative $L^{atm}(\tau)$ and $L^{surf}$, which lies in the subspace formed by the EOFs.
+
+\begin{equation*}
+    L^{TOA} = L^{atm}(\tau) + L^{surf} + L^{error}
+\end{equation*}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.6\textwidth]{eof_decomp}
+    \caption{Visualization of $L^{TOA}$ Decomposition in $\mathcal{R}^9$}
+    \label{fig:eof_decomp}
+\end{figure}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.6\textwidth]{angular}
+    \caption{Angular shape of $L^{TOA}$, $L^{atm}$ and $L^{surface}$}
+    \label{fig:angular}
+\end{figure}
+
+We find that for many aerosol types, as we sweep $\tau$ in a wide range, the inner product of $L^{TOA}$ and $L^{atm}(\tau)$ is always close to their norm product, sometimes extremely close (the ratio can be up to 0.99). On the other hand, the inner product of top EOF and $L^{TOA}$ are usually much smaller than their norm product. Figure \ref{fig:eof_decomp} shows the geometry. If the objective is to minimize $|L^{error}|$, $\tau$ will be set to such a value that $L^{atm}(\tau)$ is close to $L^{TOA}$. The linear regression on EOFs will bring the error further down, but its impact on error is much smaller than that of $\tau$ on error through function $L^{atm}(\tau)$. In fact, we find typical $|L^{atm}(\tau)|$ usually fall between $0.6\sim 0.8$ of $L^{TOA}$.
+
+We have another interesting finding when we plot out the angular shapes of $L^{TOA}$, $L^{atm}$ and $L^{surf}$ on a graph where $x$ axis is off-nadir degree and $y$ axis is reflectance (Figure \ref{fig:angular}). The surface reflectance tends to be concave while the atmosphere reflectance tends to be convex. This result agrees with physics intuition. As off-nadir degree increases, stronger atmosphere reflectance is expected due to longer sunlight path. However surface reflectance is weaker because the projected energy flux in that direction decreases by cosine law.
+
+One can imagine if $L^{atm}(\tau)$ was not approximately in parallel with $L^{TOA}$, or if $L^{atm}(\tau)$ lies in (or close to) the subspace of EOFs, the EOF algorithm would not work well, because it's impossible to differentiate atmosphere signal from surface signal.
+
+\clearpage
+\subsection{Atmosphere Parallel-Plane Model}
+MISR framework assumes multi-layer, horizontally homogeneous atmosphere within $17.6\times17.6$km region at the surface, growing to about $74\times17.6$km (due to tilted viewing angle of DF and DA camera) at an altitude of 10km (typical depth of the troposphere where $99\%$ atmospheric aerosols reside). According to \cite{misr_ancillary}, the atmosphere is modeled by three distinct strata plus a black surface (see Figure \ref{fig:SMART_layers}). The top stratum is a single, homogeneous layer composed solely of Rayleigh scatterers (gas molecules). The middle stratum is a combination of tropospheric aerosol, stratospheric aerosol, or cirrus cloud plus Rayleigh scatterers. The bottom atmospheric stratum extends from the surface to the base of the middle stratum. It is assumed that this stacking of strata as shown in Figure \ref{fig:SMART_layers} is adequate to represent the real atmosphere for the purposes of MISR aerosol retrievals. Under this assumption, the RT equations can be simplified from 3-D to 1-D forms. It provides simulated top-of-atmosphere reflectance given aerosol type, AOD, surface boundary conditions and environmental parameters (e.g. Relative Humidity, Surface Pressure), and stores it in SMART.
+
+\begin{figure}[h!]
+    \centering
+    \begin{subfigure}{.45\textwidth}
+        \centering
+        \includegraphics[width=.9\linewidth]{SMART_layers}
+        \caption{Stratified models assumed in the SMART Dataset}
+        \label{fig:SMART_layers}
+    \end{subfigure}
+    \begin{subfigure}{.45\textwidth}
+        \centering
+        \includegraphics[width=.9\linewidth]{adj_effect}
+        \caption{Schematic of the three solar radiation components in flat terrain and the pixel under consideration ($\rho$). Scattered or path radiance $L_1$, reflected radiance $L_2$, and radiation reflected from the local neighbourhood (adjacency effect) $L_3$}
+        \label{fig:adj_effect}
+    \end{subfigure}
+    \caption{Horizontally Homogeneous Atmospheric Aerosol Model}
+\end{figure}
+
+One important question is how real the homogeneity assumption is, and whether there is a certain range that 1-D RT solution holds true. To study the horizontal variability of AOD, an airborne experiment named Arctic Research of the Composition of the Troposphere from Aircraft and Satellites, (or ARCTAS) was carried out by NASA in 2008. Researchers took aerosol measurement in two contrasting phases (in Alaska and Canada), which "arguably constrain the variability in most aerosol environments common over the globe" \cite{shinozuka}. They found relative standard deviation of AOD within 20km in a homogeneous area is only $2\%$, while this number goes up to $19\%$ in an area with extremely heterogeneous airmass. In another study \cite{kovacs}, it was reported that the correlation coefficient for collocated remote-sensed (MODIS) AOD and ground-measured (AERONET) AOD is is 0.86 in a 0-20km bin on land. These studies suggest homogeneity of aerosols within 20km range is generally not unreasonable. In this work, our AOD retrieval spatial resolution is 16 times higher ($4.4\times4.4$km) at the surface, which makes the assumption of homogeneity in $17.6\times17.6$km much easier to satisfy. Also since our focus is heterogeneous land in urban areas, aerosol scale heights are usually about 1-2km, so the required homogeneity at the corresponding altitude, needs only to hold true within about $12.5\times4.4$km (v.s. $74\times17.6$km).
+
+Note that there is lower limit for the spatial resolution for the 1-D solution. When resolution becomes finer than the scale height of the aerosols, the horizontal photon diffusion (or “blurring”) scale length becomes comparable to the grid size, which leads to non-negligible blurring or "adjacency effect" \cite{martonchik1998b} (see Figure \ref{fig:adj_effect}). This is the 3-D RT regime, and the 1-D simplification breaks down. \cite{martonchik1998b},\cite{diner1984a},\cite{diner1984b} indicate that at the spatial resolution coarser than 1.1km, the errors resulting from the use of 1-D RT theory are either negligible or indistinguishable from other expected uncertainties in aerosol retrieval. Thus adding additional complexities of including 3-D RT theory for resolutions coarser than 1.1km is not warranted.
+
+\label{homogeneous}
+
+\subsection{Alternative Models}
+There are many physical models in use, for different types of remote-sensing instrument\cite{king1999}. Models are proposed in accordance with the hardware advantages and limited by its disadvantages. The goal is to exploit as many as possible the features of imaging instrument, the aerosol model, and/or the type of underlying surface. Assumptions are made to apply physical constraint to the observed reflectance so that 1) surface reflectance can be separated from atmospheric reflectance, and 2) aerosol attributes can be inversely derived from the corresponding atmospheric reflectance. 
+
+For single-channel (single angle and spectrum) image, it is essential that one assumes reasonable aerosol optical properties to constrain the problem. Most investigators assume spherical particles (Mie scattering), or certain aerosol size distribution (e.g.Junge power law) \cite{rao}. For multichannel (multiple angles and/or spectrum) image, Flowerdew et.al. assumed wave-length independence of the shape of the surface bidirectional reflectance factor, which can be characterized by a constant ratio between reflectance in different angles when spectral bands are varied\cite{flowerdew}. The strategy was successfully tested in Along-Track Scanning Radiometer -2 (ATSR-2) in 1995. In MODIS aerosol retrieval, King et.al. found that surface reflectance in some visible wavelengths is correlated with that in shortwave-infrared(SWIR: $1.4\sim 3\mu m$), and the aerosols are transparent in the $2.1\mu$m channel. Thus it is possible to derive surface reflectance in visible bands based on the observation in SWIR. On the contrary over ocean, the surface is nearly black in SWIR, and hence atmosphere signal can be directly obtained.\cite{king1992} 
+
+\subsection{Model Errors}
+The retrieval error comes from complex sources, ranging from instrument hardware, modeling, and computing. On the hardware level, accurate radiance sensing depends on electronic/optical noise control and appropriate calibration\cite{misr_calibration}. MISR adopts four low-noise large-pixel-size ($21\times18\mu$m) CCD line arrays as image sensors, where each is filtered to provide one of four MISR spectral bands. The spectral band shapes are approximately Gaussian, centered at 443, 555, 670, and 865 nm, respectively. One line array consists of 1504 photoactive pixels plus 16 light-shielded pixels per array. To suppress dark current, the CCD are operated at $-5\degree$C using a single-stage Thermo-Electric Cooler in each focal plane.\cite{diner1998}. Since each camera focal plane contains four separate line arrays, and the spacing between the line arrays is $160\mu$m, certain bands "lead" others in spatial position on the ground. Also because of the physical displacement of the four line arrays within the focal plane of each camera, there is an along-track displacement in the Earth views at the four spectral bands. This is corrected for within the Level 1B2 processing algorithm \cite{misr_projection}.
+
+\begin{figure}[h!]
+    \centering
+    \begin{subfigure}{.41\textwidth}
+        \centering
+        \includegraphics[width=.9\linewidth]{physical_misr}
+        \caption{MISR: raw data}
+        \label{fig:physical_misr}
+    \end{subfigure}
+    \begin{subfigure}{.49\textwidth}
+        \centering
+        \includegraphics[width=.9\linewidth]{virtual_misr}
+        \caption{MISR: co-registered data}
+        \label{fig:virtual_misr}
+    \end{subfigure}
+    \caption{Georectification of MISR image \cite{misr_projection}}
+\end{figure}
+
+In order to provide coregistered and geolocated data, the ground data processing system is designed to geometrically process multi-angle multispectral data, so that they all conform to a common map projection. This process is called "georectification". In general, the georectification processing segment must deal with the pointing error composed of: a) camera internal geometric errors and b) errors in the supplied spacecraft ephemeris and attitude data. In addition, the processing related to the terrain-projected radiance must remove the distortion introduced by the topography that occurs when imaging with multiple viewing angles.
+
+On the modeling level, retrieval accuracy depends on how faithful the assumptions of the model are, and how accurate the physical parameters are for a given aerosol model. In Section \ref{homogeneous}, we already addressed horizontal homogeneity assumption of the atmosphere (parallel-plane model) and its limitation. Besides that, the accuracy of all physical parameters in the actual computation of RT equations for parallel-plane model is critical. For example, single scattering albedo, extinction cross-section, scattering phase function, and etc. In case of multiple scattering or multiple layers, more assumptions are made to make the computation tractable.\cite{liou}
+

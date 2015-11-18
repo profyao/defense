@@ -1,0 +1,190 @@
+\section{Scalable Aerosol Retrieval}
+Based on MISR aerosol retrieval framework \cite{misr_retrieval} discussed in Section \ref{misr_framework}, a hierarchical Bayesian Model was proposed to enhance the retrieval accuracy as well as the spatial resolution in \cite{taesup},\cite{nancy_paper}. In these papers, the Bayesian model applies continuity constraint, and was proved to perform well in multiple areas, such as Baltimore-DC and Beijing metropolitan regions. However as was also indicated by the authors, the MCMC inference algorithm used in their Bayesian modeling was exceedingly slow; the main goal of this research is to improve the computational efficiency of their Bayesian model. In the meantime, the systematic overestimation of AOD in their work is also investigated. We also plan to deliver a parallelized aerosol retrieval code repository implemented on Apache Spark.
+
+\subsection{Random Local Search (RLS) and Numerical Coordinate Ascent (NCA)}
+Two new methods have been applied to infer AOD and aerosol component percentages in the Bayesian model. They are Random Local Search (RLS) and Numerical Coordinate Ascent (NCA). Instead of sampling over the posterior distribution and using posterior mean as the estimator, RLS and NCA both aim to search for posterior mode, which are then used as the estimator. Thus the original sampling procedure is converted into an optimization problem. NCA is primarily inspired by Chapter 3 of \cite{nancy_phd}, where the derivative was calculated analytically with certain approximations. Since the MISR SMART data is a non-smooth look-up table (LUT), using numerical derivatives is a natural fit. Our experiment shows that the numerical version has better accuracy than the analytical one, and is easier to implement. Their retrieval results are shown in Figure \ref{fig:aod}.
+
+For our aerosol retrieval problem, both MCMC and MAP are acceptable estimators as a final solution. Particularly for MAP, both NCA and RLS would work due to the local convexity of the objective function near optimum. Results in \cite{nancy_phd} show the objective function indeed appears convex w.r.t. $\tau$ and $\theta$ (see Figure \ref{fig:convexity}). On the other hand, Figure \ref{fig:post_dist} shows both posterior mean from MCMC and posterior mode from RLS have reasonable accuracy compared with ground data.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.8\textwidth]{convexity}
+    \caption{Left panel: convexity of negative log-posterior as a function of AOD $\tau$ and mixing percentage $\theta_1$ of aerosol component 1 (spherical non-absorbing aerosols). Right panel: side view of the three dimensional surface.}
+    \label{fig:convexity}
+\end{figure}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.8\textwidth]{post_dist}
+    \caption{Histogram of MCMC samples v.s. Random Local Search results; vertical line represents the AERONET measurement.}
+    \label{fig:post_dist}
+\end{figure}
+
+Recall that the Bayesian objective function is in Equation \eqref{equ:aod_obj}. There are two major differences between this Bayesian version and the non-Bayesian one in Equation \eqref{equ:non-bayesian}. First, penalty terms are added to apply spatial smoothness to $\tau_p$ and mixing vector sparseness to $\theta_p$. Second, as a result, the error minimization is performed on the image level (sum of all pixels), rather than on individual pixel. In other words, $\tau_p$ and $\theta_p$ are retrieved jointly across the whole image.
+
+\clearpage
+\begin{multline}
+f(\sigma^2,\tau,\theta,\kappa|L)  \propto \frac{\kappa^{\frac{P-3}{2}}\Gamma(\sum\limits_{m=1}^M\alpha_m)}{\prod\limits_{c=1}^C(\sqrt{2\pi}\sigma_c)^{P_c+2}\prod\limits_{m=1}^M\Gamma(\alpha_m)}\\
+\exp\left 
+\{-\sum\limits_{p=1}^{P_c}\sum\limits_{c=1}^{C}\frac{\left(L_{cp}-  L_{c}^{RT}\left(\tau_p,\theta_p\right)\right)^2}{2\sigma_c^2}
+-\frac{1}{2}\kappa\sum\limits_{p^{\prime}\sim p}(\tau_{p^\prime}-\tau_p)^2 + \sum\limits_{p=1}^{P}\sum\limits_{m=1}^{M}(\alpha_m-1)\log\theta_{pm} \right\}
+ \label{equ:aod_obj}
+\end{multline}
+
+Table \ref{tab:randomized_local_search} shows a skeleton of RLS. NCA is almost identical except that the update for $\tau$ and $\theta$ is changed to $\tau_p^\star \leftarrow \tau_p + \rho\nabla f(\tau_p|L)$ and $\theta_p^\star \leftarrow \theta_p + \rho\nabla f(\theta_p|L)$.
+
+\begin{table}[h!]
+    \caption{Randomized Local Search(RLS)}
+    \label{tab:randomized_local_search}
+    \centering
+    \begin{tabular}{ p{\linewidth} }
+        \hline
+        \hline
+        \textbf{initialize} $\tau_{1:P}$,$\theta_{1:P}$ \\
+        \hline
+        \textbf{while} $True$ \\
+        \hspace{4pt}\textbf{for} $p=1$ to $P$ \\
+        \hspace{8pt}Propose $\tau^\star_p \sim q(\tau_p|\tau_{-p}) \propto \exp\left\{\ -\frac{1}{2\Delta^2}\left( \tau_p - \frac{1}{n_p}\sum\limits_{p\prime\in \partial p}\tau_{p\prime}   \right)^2\right\}$\\
+        \hspace{8pt}Update $\tau_p \leftarrow \tau^\star_p$ if $f(L|\sigma^2,\tau^\star_p,\theta) - f(L|\sigma^2,\tau_p,\theta) > 0$\\
+        \hspace{8pt}Update $\kappa \leftarrow \frac{P-3}{\sum\limits_{p\prime \sim p} (\tau_p-\tau_{p\prime})^2}$\\
+        \hspace{8pt}Propose $\theta^\star_p \sim q(\theta_p|\theta_{-p}): \theta_{p,k} \sim Gamma\left( \frac{1}{n_p}\sum\limits_{p\prime\in \partial p} \theta_{p\prime,k},1\right)$,$\theta_{p,k} = \frac{\theta_{p,k}}{\sum\limits_{k=1}^K \theta_{p,k}}$, $k$ = $1$ to $K$\\
+        \hspace{8pt}Update $\theta_p \leftarrow \theta^\star_p$ if $f(L|\sigma^2,\tau,\theta^\star_p) - f(L|\sigma^2,\tau,\theta_p) > 0$\\
+        \hspace{8pt}Update $\sigma_c^2 \leftarrow \frac{\sum\limits_{p=1}^{P_c}\left(L_{cp}-L_c^{RT}(\tau_p,\theta_p)\right)^2}{P_c+2}$, $c$ = $1$ to $C$\\
+        \hspace{4pt}\textbf{end for} \\
+        \hspace{4pt}\textbf{break}, if $\Delta f(L|\sigma^2,\tau,\theta) < \epsilon$\\
+        \textbf{end while}\\
+        \hline
+        \textbf{return} $\tau$,\ $\theta$,\ $\sigma^2$\\
+        \hline
+        \hline
+    \end{tabular}
+\end{table}
+
+\begin{figure}[h!]
+    \centering
+    \begin{subfigure}{\textwidth}
+        \centering
+        \includegraphics[width=.9\textwidth]{overlay_2011_06_02_Baltimore_CD-random}
+        \caption{Random Local Search}
+        \label{fig:aod_CD-random}
+    \end{subfigure}
+    \begin{subfigure}{\textwidth}
+        \centering
+        \includegraphics[width=.9\textwidth]{overlay_2011_06_02_Baltimore_CD}
+        \caption{Numerical Coordinate Ascent}
+        \label{fig:aod_CD}
+    \end{subfigure}
+    \caption{June 2, 2011, Baltimore, AOD Retrieval overlaid on Google Map;
+        color-coded squares represent retrievals while circles represent AERONET ground measurement; a mismatch in color on a pixel indicates a potential in-situ retrieval error.}
+    \label{fig:aod}
+\end{figure}
+
+The RLS is a zero-order method that doesn't compute any derivatives of the objective function, while NCA is a first-order method that uses numerical derivative information. Since these two algorithms achieve objective function improvement at every iteration (and thus "greedy"), the convergence speed is much faster than MCMC. In practice it is also much easier to detect their convergence compared with MCMC. Our experiment is carried out on iOS with 2.3G Intel Core i7 and Linux with 2.6G AMD Opteron 8384. On both platforms, RLS and NCA are about 100 times faster than MCMC. Compared with ground measurement, NCA has almost the same accuracy as RLS in high AOD cases except in low AOD cases (see Table \ref{tab:performance} and Figure \ref{fig:scatter}). In the mean time, we find that RLS achieves higher posterior likelihood in low AOD cases while NCA achieves higher posterior likelihood in high AOD cases (see Table \ref{tab:post_lik}). In low AOD cases, objective function is less sensitive to aerosol signals. As a result, NCA may get trapped in some sub-optimal states while RLS has certain probability of avoiding "local trap". In fact, most proposals that lead to local optimum are simply rejected and AOD almost just stay as initialized (flat line of dots, initialized from MISR block-averaging AOD). In high AOD cases when objective function is much more sensitive to aerosol signals, greedy NCA results in slightly higher posterior likelihood.
+
+\begin{table}[h!]
+    \centering
+    \caption{Complete Joint Likelihood PDF ($\times 10^3$) for Different Retrievals}
+    \label{tab:post_lik}
+    \begin{tabular}{|c|c|c|}
+        \hline
+        Date & Random Local Search & Numerical Coordinate Ascent\\
+        \hline
+        June 2, 2011 & 292.15 & 292.12 \\
+        June 4, 2011& 110.76 & 110.40 \\
+        July 20, 2011 & 63.13 & 62.62 \\
+        July 22, 2011 & 135.12 & 136.47 \\
+        July 29, 2011 & 90.84 & 90.93 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+The AERONET data we used for validation is collected on the same dates as indicated in \cite{taesup}, so that results are more comparable. We list the data information again in Table \ref{tab:aeronet_data}.
+
+\begin{table}[h!]
+    \begin{center}
+        \caption{MISR OVERPASS TIMES FOR THE BALTIMORE-WASHINGTON REGION}
+        \label{tab:aeronet_data}
+        \begin{tabular}{c|c|c|c}
+            \hline
+            \textbf{Date}  & \textbf{Path Number} & \textbf{Orbit Number} & \textbf{Overpass Time (UTC)}\\
+            \hline
+            \hline
+            June 2, 2011 & 16 & 60934 & 16:03\\
+            June 4, 2011 & 14 & 60963 & 15:51\\
+            July 20, 2011 & 16 & 61633 & 16:03\\
+            July 22, 2011 & 14 & 61662 & 15:51\\
+            July 29, 2011 & 15 & 61764 & 15:57\\
+            \hline
+        \end{tabular}
+    \end{center}
+\end{table}
+
+\subsection{Batch-mode Pixel Update}
+One may notice that all these algorithms make inference of the high dimensional parameters by updating them in a cyclic manner. This renders repeatedly usage of sequential loops and dramatically hurt the speed of our algorithm. On the other hand, the relative independence between distant areas within a MISR block admits a natural fit with parallel computing. To take advantage of the relative independence between pixels that are far apart, we have developed a batch-mode parameter updating scheme. We update all pixels in one block simultaneously, assuming that their coupling within one round of iteration is weak and negligible. Since parameters are now updated concurrently, we can compute the update in a parallel fashion, and the algorithm becomes much faster. In principle, the speed-up would be proportional to the number of pixels in each block. This number is usually around 1000 to 2000. In cases when computer resource is limited, we don't update all pixels simultaneously, but divide the whole block into a few patches and update pixels in each patch simultaneously. In this case the speed-up would be around the number of patches (say 4, much smaller than the first case).
+
+Compared with the work in \cite{nancy_paper}, where parameter updates occur concurrently among patches and sequentially inside each, our batch-mode pixel update is embarrassingly parallel. It fully decouples the pixels from their adjacent ones in the current round of block update. Hence the speed-up is not limited by the number of patches, but the number of total pixels in one block. The latter is much larger number than the former.
+
+As a proof of concept, we use Matlab's parallel computing toolbox, and scale up to 4 cores on a single computer. The speed is indeed about 4 times faster than the serial version of the algorithm (see Table \ref{tab:performance}). The overhead communication makes the speed-up multiple less than 4. In the future we will implement the algorithms in open-source languages and leverage other cutting-edge parallel computing technologies (e.g. Apache Spark) to scale the parallelism to its ideal upper bound.
+
+The performance of the above algorithms are summarized in Table \ref{tab:performance} and Figure \ref{fig:aod} and Figure \ref{fig:scatter}. Retrieval time shown in the table are the average of the results of the 5 dates.
+
+\begin{table}[h!]
+    \caption{Performance Comparison}
+    \label{tab:performance}
+    \begin{center}
+        \begin{tabular}{|c|c|c|c|c|c|}
+            \hline
+            & RLS-1core & RLS-4core & NCA-4core & MCMC-4core\\
+            \hline
+            \hline
+            Time (sec) & 60 & 16 & 15 &  1570 \\
+            \hline
+            Iteration \# & 20 & 20 & 5 & 1000 \\
+            \hline
+            Correlation & 0.939 & 0.941 & 0.936 & 0.862 \\
+            \hline
+            RMSE & 0.042 & 0.042 & 0.046 & 0.074 \\
+            \hline
+            Mean Bias & 0.016 &  0.017 & 0.025 & 0.047 \\
+            \hline
+        \end{tabular}
+    \end{center}
+\end{table}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=.6\textwidth]{scatter_Baltimore_CD-random_CD_MCMC}
+    \caption{Scatterplot of Retrieved AOD v.s. Ground Measurement}
+    \label{fig:scatter}
+\end{figure}
+
+\label{parallel}
+
+
+\subsection{Spark Implementation}
+Apache Spark has been widely recognized and adopted as a fast and general engine for large-scale data processing. Its has an advanced DAG execution engine that supports cyclic data flow and in-memory computing. Spark revolves around the concept of a resilient distributed dataset (RDD), which is a fault-tolerant collection of elements that can be operated on in parallel. Our AOD retrieval algorithm is admittedly iterative, but still parallelizable pixel by pixel. We hope the batch-mode pixel update can take advantage of the spark capabilities. Figure \ref{fig:flow_chart} and \ref{fig:spark} demonstrate a top-level concept and bottom-level implementation of the spark system. We find that our algorithm scales up reasonably well as we increase the number of cores in the computation.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.8\textwidth]{flow_chart}
+    \caption{Diagram of AOD Retrieval Spark Library}
+    \label{fig:flow_chart}
+\end{figure}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.8\textwidth]{spark}
+    \caption{Diagram of Spark Implementation}
+    \label{fig:spark}
+\end{figure}
+
+We use Pyspark as the API for Spark, which is compatible with MISR Science Team. To insure efficiency for computationally expensive jobs, we use C code for the core retrieval subroutines, such as the interpolation operations in SMART data. In terms of hardware, we use Amazon EC2 instance (c3.8xlarge) to do our experiment. c3.8xlarge has 32 cores and 60G memory. The CPU is Intel Xeon E5-2670 with 2.8G clock frequency, and its networking performance is 10Gigabit. We run our spark program both in local mode and Hadoop cluster mode. Local mode scales up slightly better than cluster mode due to less network overhead for broadcast variables.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=\textwidth]{spark_scaling}
+    \caption{Normalized Time for Local and Cluster Mode Spark Implementation}
+    \label{fig:spark_scaling}
+\end{figure}
+
+The speed seems to saturate after 32 cores, which may be due to two reasons: 1) Our algorithm considers spatial continuity for adjacent pixels. Each iteration when the batch-mode update is finished, we have to collect the parameters back to the driver from all workers and update the RDD of neighbouring parameters. 2) Since parameters like $\kappa$ and $\sigma^2_c$ are shared by one block of image and Spark does not support nested RDD, all of them are shipped to each worker even though only part of the parameters are used. These two constraints are the main reasons why overhead time could dominate the speed performance after the cores reach certain number.

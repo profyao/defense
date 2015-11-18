@@ -1,0 +1,51 @@
+\documentclass[dvips,12pt]{article}
+\usepackage[pdftex]{graphicx}
+\usepackage{url}
+\graphicspath{{.},{../../plots/}}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{eqnarray,amsmath}
+\usepackage{gensymb}
+\usepackage[toc,page]{appendix}
+%\usepackage{fancyhdr}
+%\pagestyle{fancy}
+
+% These are additional packages for "pdflatex", graphics, and to include
+% hyperlinks inside a document.
+
+\setlength{\oddsidemargin}{0.25in}
+\setlength{\textwidth}{6.5in}
+\setlength{\topmargin}{0in}
+\setlength{\textheight}{8.5in}
+
+% These force using more of the margins that is the default style
+
+\begin{document}
+
+\title{Scalable Aerosol Retrieval via Multi-angle Imaging SpectroRadiometer (MISR): A Bayesian Approach}
+\author{Shijing Yao}
+\date{\today}
+
+\maketitle
+
+\include{intro}
+
+\include{misr_framework}
+
+\include{scalable}
+
+\include{stability}
+
+\include{refinement}
+
+\include{component}
+
+\include{proposals}
+
+\include{conclusion}
+
+ \bibliographystyle{unsrt}
+ \bibliography{defense_cite}
+
+\include{RT_review}
+\end{document}

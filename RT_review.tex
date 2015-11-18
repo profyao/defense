@@ -1,0 +1,181 @@
+\begin{appendices}
+\section{Review of Radiative Transfer Theory}
+
+\setcounter{figure}{0} \renewcommand{\thefigure}{A.\arabic{figure}}
+\setcounter{equation}{0} \renewcommand{\theequation}{A.\arabic{equation}}
+
+When a pencil of radiation traverses an medium (e.g. atmosphere), scattering and absorbing happens between the photons and particles that comprises the medium. Scattering and absorbing process results in the extinction of the radiant flux, and at the same time, generating new sources of radiance that may be then added to the original radiance. The general equation of transfer is governed by certain differential equation. The concept is shown in \ref{fig:beer}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.8\textwidth]{beer}
+    \caption{Depletion of the radiant intensity in traversing an absorbing medium}
+    \label{fig:beer}
+\end{figure}
+
+When scattering and emission contributions may be neglected, the radiation gets attenuated following \eqref{equ:beer}
+
+\begin{equation}
+    dI(s) = -k\rho I(s) ds
+    \label{equ:beer}
+\end{equation}
+
+$\rho$ is the material mass density. $k$ has a unit of mass per area, which is called mass absorption cross section. Now define $d\tau(s) := k\rho ds$, \eqref{equ:beer} becomes
+
+\begin{equation}
+    dI(s) = -I(s)d\tau
+\end{equation}
+
+Therefore $I(s) = I(0)e^{-(\tau(s) - \tau(0)}$. If $\tau(0)=0$, $I(s) = I(0)e^{-tau(s)}$. The decay of $I(s)$ is exponential in $\tau(s)$, which has has a direct mapping to distance $s$. This is the well-known Beer-Bouguer-Lambert Law.
+
+As we mentioned above, after scattering and absorption happens, scattered and newly generated photons can act as new sources of radiance. If we take these into account, the full equation of radiance transfer should be
+
+\begin{equation}
+    dI(s) = -k\rho I(s) ds + j(s) \rho ds
+    \label{equ:beer_complete}
+\end{equation}
+
+$j(s)$ is called the source function. In a spherical coordinate system shown as below, \eqref{equ:beer_complete} becomes
+
+\begin{equation}
+    \cos \theta \frac{dI(z;\theta, \phi)}{k\rho dz} = -I(z;\theta, \phi) + J(z;\theta, \phi)
+    \label{equ:beer_z}
+\end{equation}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.8\textwidth]{spherical}
+\end{figure}
+
+We can solve Equation \eqref{equ:beer_z}, using $\tau$ as the differentiator. $\mu:=\cos \theta$, $-\mu$ means downward flux and $\mu$ means upward flux.
+
+\begin{equation}
+    I(\tau; \mu, \phi) = I(\tau_1; \mu, \phi) e^{-(\tau_1 - \tau)/\mu} + \int_{\tau}^{\tau_1} J(\tau^\prime;\mu,\phi)e^{-(\tau^\prime - \tau)/\mu} \frac{d\tau^\prime}{\mu}
+    \label{equ:upwward}
+\end{equation}
+
+\begin{equation}
+I(\tau; -\mu, \phi) = I(0; \mu, \phi) e^{-\tau/\mu} + \int_{0}^{\tau} J(\tau^\prime;-\mu,\phi)e^{-(\tau - \tau^\prime)/\mu} \frac{d\tau^\prime}{\mu}
+\label{equ:downward}
+\end{equation}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.8\textwidth]{transfer}
+    \caption{Upward and downward intensities in a finite, plane-parallel atmosphere}
+\end{figure}
+
+Now let's see how to derive $J(\tau;\mu,\phi)$ and $J(\tau;-\mu,\phi)$ in a parallel-plane model.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.8\textwidth]{scattering}
+    \caption{Transfer of solar radiation in plane-parallel layers, illustrating attenuation by extinction, including a. multiple scattering, b. single scattering and c. unscattered solar flux}
+\end{figure}
+
+Source function $J(\tau; \mu, \phi)$ is composed of the scattering of diffused light $I(\tau; \mu, \phi)$ and unscattered sunlight.
+
+\begin{equation}
+    J(\tau; \mu, \phi) = \frac{\omega}{4\pi} \int_{0}^{2\pi}\int_{-1}^{1} I(\tau; \mu^\prime, \phi^\prime)P(\mu, \phi;\mu^\prime, \phi^\prime)d\mu^\prime d\phi^\prime + \frac{\omega}{4\pi} \pi F_0 P(\mu, \phi; -\mu_0, \phi_0) e^{-\tau/\mu_0}
+\end{equation}
+
+$\omega$ is single scattering albedo. In order to compute the intensity for photons scattered once, twice, three times, and so forth, we use the following summation to account for diffuse reflected and transmitted intensities.
+
+\begin{align}
+\begin{split}
+    I(\tau; \mu, \phi) = \sum_{n=1}^{\infty} I_n(\tau; \mu, \phi) \\
+    I(\tau; -\mu, \phi) = \sum_{n=1}^{\infty} I_n(\tau; -\mu, \phi)
+\end{split}
+\end{align}
+
+It follows that the source function and intensities may be derived successively by means of recursion.
+
+\begin{align}
+\begin{split}
+    J_{n+1}(\tau; \mu, \phi) = \frac{\omega}{4\pi} \int_{0}^{2\pi}\int_{-1}^{1} I_n(\tau; \mu^\prime, \phi^\prime)P(\mu, \phi;\mu^\prime, \phi^\prime)d\mu^\prime d\phi^\prime \\
+    I_n(\tau; \mu, \phi) = \int_{\tau}^{\tau_1} J_n(\tau^\prime;\mu,\phi)e^{-(\tau^\prime - \tau)/\mu} \frac{d\tau^\prime}{\mu}, \  n\geq 1\\
+    I_n(\tau; -\mu, \phi) = \int_{0}^{\tau} J_n(\tau^\prime;-\mu,\phi)e^{-(\tau - \tau^\prime)/\mu} \frac{d\tau^\prime}{\mu} , \  n\geq 1\\
+    I_0(\tau; \mu^\prime, \phi^\prime) = \pi F_0 e^{-\tau/\tau_0} \delta(\mu^\prime-\mu_0)\delta(\phi^\prime - \phi_0)
+\end{split}
+\end{align}
+
+People also find it convenient to rewrite the solutions in this form.
+
+\begin{align}
+\begin{split}
+    I_r(0, \mu, \phi) = \frac{1}{\pi} \int_{0}^{2\pi}\int_{0}^{1} R(\mu, \phi; \mu^\prime, \phi^\prime) I_0(-\mu^\prime, \phi^\prime) \mu^\prime d\mu^\prime d\phi^\prime \\
+    I_t(\tau_1, -\mu, \phi) =  \frac{1}{\pi} \int_{0}^{2\pi}\int_{0}^{1} T(\mu, \phi; \mu^\prime, \phi^\prime) I_0(-\mu^\prime, \phi^\prime) \mu^\prime d\mu^\prime d\phi^\prime
+\end{split}
+\end{align}
+
+$I_t(\tau_1, -\mu, \phi)$ doesn't include the non-scattered portion of the sunlight, which is $\pi F_0 e^{-\tau_1/\mu_0}$. In satellite meteorology, $R$ and $T$ are also called bidirectional reflectance and transmittance.
+
+In planetary applications, the surface reflectance plays an import role for the reflected and transmitted sunlight. For simplicity, we assume the ground reflects according to Lambert's law, with a reflectivity (or surface albedo) of $r_s$, or $I(\tau_1; \mu, \phi) = I_s$.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.8\textwidth]{surface}
+    \caption{Scattering including surface reflectance}
+\end{figure}
+
+The total reflected intensity including the contribution of surface reflection would be
+
+\begin{multline}
+I^\star(0; \mu, \phi) = I(0; \mu, \phi) + \frac{1}{\pi} \int_{0}^{2\pi} \int_{0}^{1} T(\mu, \phi; \mu^\prime, \phi^\prime) I_s \mu^\prime d\mu^\prime d\phi^\prime + I_se^{-\tau_1/\mu} \\
+= \mu_0F_0 R(\mu, \phi;\mu_0, \phi_0) + I_s\left[t(\mu) + e^{-\tau_1/\mu}\right]
+\end{multline}
+To get $I_s$, we should use the reflectance property of the surface. Under our Lambertian assumption, it takes this form:
+
+\begin{align}
+\begin{split}
+    \pi I_s = r_s \left[ \pi \mu_0 F_0 e^{-\tau/\mu_0} + \pi \mu_0 F_0 t(\mu_0) + \pi I_s \bar{r} \right] \\
+    \pi I_s \bar{r} = \int_{0}^{2\pi}\int_{0}^{1} I^R_s(-\mu)\mu d\mu d\phi \\
+    I^R_s(-\mu) = \frac{1}{\pi} \int_{0}^{2\pi} \int_{0}^{1} R(\mu, \phi;\mu^\prime, \phi^\prime) I_s \mu^\prime d\mu^\prime d\phi^\prime = I_s r(\mu)
+\end{split}
+\end{align}
+
+The reflectance and transmittance for $I_s^R$ is the same as that for incident sunlight due to the principle of reciprocity. Solving the above equation, we get
+
+\begin{equation}
+    I_s = \frac{r_s}{1-r_s\bar{r}} \mu_0 F_0 \left[ t(\mu_0) + e^{-\tau_1/\mu_0} \right]
+\end{equation}
+
+Thus the solution for total reflectance is
+
+\begin{equation}
+   I^\star(0; \mu, \phi) = \mu_0F_0 R(\mu, \phi;\mu_0, \phi_0) + \frac{r_s}{1-r_s\bar{r}} \mu_0 F_0 \left[ t(\mu_0) + e^{-\tau_1/\mu_0} \right] \left[t(\mu) + e^{-\tau_1/\mu}\right]
+   \label{equ:surface_solution}
+\end{equation}
+
+If we have layers with different reflectance and transmittance properties, adding method is a powerful tool to derive the property of the combined layers.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.8\textwidth]{adding_method}
+    \caption{Configuration of the adding method. The two layers of optical depths $\tau_1$ and $\tau_2$ are for convenient illustration, as if they were physically separated.}
+\end{figure}
+
+\begin{multline}
+    R_{12} = R_1 + T_1R_2T1 + T_1R_2R_1R_2T_1 + T_1R_2R_1R_2R_1R_2T_1 + ...\\
+    = R_1 + T_1R_2T_1\left[1 + R_1R_2 + (R_1R_2)^2 + ...\right] = R_1 + \frac{R_2T_1^2}{1-R_1R_2}
+\end{multline}
+
+\begin{multline}
+T_{12} = T_1T_2 + T_1R_2R_1T2 + T_1R_2R_1R_2R_1T_2 ...\\
+= T_1T_2\left[1 + R_1R_2 + (R_1R_2)^2 + ...\right] = \frac{T_1T_2}{1-R_1R_2}
+\end{multline}
+
+Note that $T$ includes both direct and diffuse transmission. $T = T_{diff} + T_{dir} = T_{diff} + e^{-\tau/\mu^\prime}$. $\mu^\prime = \mu_0$ when transmission is associated with incident solar beam and $\mu^\prime = \mu$ when transmission is related to the emergent beam in the direction $\mu$.
+
+At last, we want to show that, in case of full 3-D computations, the general equation of radiance transfer is
+
+\begin{align}
+\begin{split}
+        J(\mathbf{s, \Omega}) = \frac{\omega(\mathbf{s})}{4\pi}\int_{4\pi}^{} I(\mathbf{s, \Omega^\prime}) P(\mathbf{s}; \mathbf{\Omega, \Omega^\prime}) d\mathbf{\Omega^\prime} + \frac{\omega(\mathbf{s})}{4\pi} P(\mathbf{s}; \mathbf{\Omega, -\Omega_0}) \pi F_0 \exp{\left[ -\int_{0}^{s} \beta_e(s^\prime) ds^\prime \right]} \\
+                -\frac{1}{\beta_e(\mathbf{s})} (\Omega \cdot \nabla) I(\mathbf{s, \Omega}) = I(\mathbf{s, \Omega}) - J(\mathbf{s, \Omega})
+\end{split}
+\end{align}
+
+In MISR aerosol retrieval project, $R(\mu,\phi; \mu^\prime, \phi^\prime)$ and $T(\mu,\phi; \mu^\prime, \phi^\prime)$ are precomputed for each aerosol component with different $\tau_1$ values, and stored in SMART dataset.
+\label{apd:rt}
+\end{appendices}

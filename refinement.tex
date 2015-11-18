@@ -1,0 +1,16 @@
+\section{Algorithm Refinement}
+
+\subsection{Increase Spatial Resolution}
+
+Our current AOD retrieval resolution is 4.4-km, lower than 1.1km image data, as we need to derive EOF from the 16 pixels of size 1.1-km. In fact, the highest spatial resolution mode can capture 275-m image data for red band in all nine cameras. However other bands can reach only 1.1-km. According to \cite{flowerdew}, the angular shape of surface reflectance factor can be expected to be nearly invariant spectrally because the surface scattering elements, e.g. soil grains, leaves are much larger than the wavelengths in visible bands, in contrast with atmospheric scattering where the aerosol sizes are comparable to the wavelength of the light. In spirit of this important property, we argue that the EOF derived from red band only, can still be accurate enough to express the surface angular shape in other bands. Using this technique, we are able to push the spatial resolution of AOD retrieval to even higher. We did a pilot experiment of 1.1-km retrieval for Baltimore area, and the results seem very promising. We will further test the 1.1km resolution for other areas in future work. Figure \ref{fig:high_res} demonstrates the 1.1km results for Baltimore-DC area on Jun 2nd, 2011.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.9\textwidth]{overlay_2011_06_02_Baltimore_CD-random_1100}
+    \caption{AOD Retrieval using Random Local Search at 1.1-km Spatial Resolution}
+    \label{fig:high_res}
+\end{figure}
+
+\subsection{Fix AOD Overestimation}
+In \cite{taesup}, the author reported consistent overestimation of AOD for MCMC. We observe the same phenomenon in our experiment. We find that it's universal in other inference algorithms, such as RLS and NCA. We thus argue that the error source doesn't lie all in inference methods, but also in physical models. The overestimation can come from 1) incorrect aerosol models where too much absorption aerosol is assumed or 2) too much reflectance is assigned to path radiance. The MISR framework sets up the upper limit for path radiance by making sure the sum of path radiance and surface reflectance is less than the minimum of all subregion reflectance in all 36 channels. A limiting surface reflectance is used to estimate the contribution from surface reflectance in the above inequality. We find that this term is missing in \cite{nancy_paper} \cite{taesup}  and adding back this term is helpful in mitigating the overestimation problem. We further find that introducing a threshold parameter between 0 and 1 to control the percentage of path radiance in the total radiance is helpful. The threshold value is currently set up to be 0.9, which is derived from empirical experiment. The threshold is currently shown robust for all data collected from this region.
+\label{overestimate}

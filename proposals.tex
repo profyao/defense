@@ -1,0 +1,78 @@
+\section{Proposals}
+\subsection{Approximate Gibbs Sampling by Importance Sampling}
+Our inference algorithm is based on a hierarchical Bayesian model. In this work, we changed the original Metropolis-Hasting within Gibbs sampling, a full Bayesian posterior estimation, into random local search, an optimization method. By doing so, we have gained tremendous gain in speed, but at the same time lose information of the retrieval variance. In cases where people want to know how confident we are about our retrievals, we may return to the full Bayesian approach. One of the reasons why MH-within-Gibbs is slow, is that if proposal distribution is not well chosen, many samples will be rejected and thus utterly wasteful. We know however, if the proposal distribution is indeed the posterior (conditional) distribution, the acceptance rate would be always 1. In that case, MH-within-Gibbs is simplified to Gibbs. But of course in our problem, direct sampling from the posterior (conditional) distribution is not possible.
+
+Here shows how we may use importance sampling to create an empirical proposal distribution that mimics the posterior (conditional) distribution $p(\tau_p|L_p,\theta_p,\sigma^2,\kappa)$. Suppose we can easily sample $\tau_p$ from some distribution $q(\tau_p)$ where the support of $q(\tau_p)$ expands typical range of $\tau_p$.
+
+%\begin{multline}
+%    \int f(\tau) p(\tau|L) d\tau = \int f(\tau) \frac{\pi(\tau) p(L|\tau)}{p(L)} \frac{q(\tau)}{q(\tau)} d\tau =
+%    \frac{1}{p(L)} \int f(\tau) p(L|\tau) \frac{\pi(\tau)}{q(\tau)} q(\tau)d\tau \\
+%    = \frac{1}{p(L)} E_{\tau\sim q} \left[ f(\tau) p(L|\tau) \frac{\pi(\tau)}{q(\tau)} \right] \approx %\frac{1}{\sum\limits_{\tau^\star} p(L|\tau^\star)} \sum\limits_{\tau^\star} f(\tau^\star) p(L|\tau^\star) %\frac{\pi(\tau^\star)}{q(\tau^\star)} = \sum\limits_{\tau^\star} f(\tau^\star) w(\tau^\star) %\frac{\pi(\tau^\star)}{q(\tau^\star)}
+%\end{multline}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.45\textwidth]{bayes_net}
+    \hfill
+    \includegraphics[width=0.45\textwidth]{importance}
+    \caption{Hierarchical Bayesian Model and Importance Sampling within Gibbs Sampling}
+\end{figure}
+
+We draw $n$ samples from $q(\tau_p)$. The weight of each $\tau_p$ is $\frac{1}{n}$. We reweigh each sample of $\tau_p$ by multiplying their original weight $\frac{1}{n}$ with a factor $f$.
+
+\begin{equation}
+    weight = \frac{1}{n} \times f = \frac{1}{n} \times \frac{p(\tau_p|L_p,\theta_p,\sigma^2,\kappa)}{q(\tau_p)} \propto \frac{\pi(\tau_p) p(L_p|\tau_p,\theta_p,\sigma^2,\kappa)}{q(\tau_p)}
+\end{equation}
+
+After renormalizing the weight for all $n$ samples $\tau_p$, we can efficiently draw $\tau_p^\star$ from this empirical distribution. As long as our empirical distribution is close to true posterior (conditional) distribution enough, this procedure would be a good proxy of Gibbs sampling. Also drawing $n$ samples are independent, and can be done in a parallel fashion if $n$ needs to be really large.
+
+\subsection{Improve Temporal Coverage}
+The strength of MISR in AOD retrieval lies in its capability of multiple channels and thus accurate capture of the reflectance property of aerosols. However when compared to other instrument such as Moderate Resolution Imaging SpectroRadiometer (MODIS), MISR suffers from long revisit cycle (16-day) along its orbit paths (Figure \ref{fig:MISR_orbit}). In light of shorter revisit time (1-day) of MODIS, borrowing the finer temporal information from MODIS to MISR is natural (Figure \ref{fig:MISR_MODIS}). To that end, we propose to fuse the two dataset to perform AOD retrieval. Our preliminary investigations have shown that MODIS and MISR data are highly correlated in some bands but are almost uncorrelated in others. This indicates that the two dataset are complementary in certain ways. It is thus possible to retrieve AOD using the fused data to realize higher temporal coverage.
+
+\begin{figure}[h!]
+	\centering
+	\begin{subfigure}{.45\textwidth}
+		\centering
+		\includegraphics[width=.9\linewidth]{revisit}
+		\caption{MISR path is narrow; \\block size is small.}
+		\label{fig:MISR_orbit}
+	\end{subfigure}
+	\begin{subfigure}{.45\textwidth}
+		\centering
+		\includegraphics[width=.9\linewidth]{track}
+		\caption{MODIS path is much wider, leading to faster global coverage and shorter revisit time.}
+		\label{fig:MISR_MODIS}
+	\end{subfigure}
+	\caption{MISR v.s. MODIS}
+	\label{fig:misr}
+\end{figure}
+
+
+\begin{figure}[h!]
+    \centering
+    \begin{subfigure}{.45\textwidth}
+        \centering
+        \includegraphics[width=.9\linewidth]{fusion}
+        \caption{MISR and MODIS Image Array}
+    \end{subfigure}
+    \begin{subfigure}{.45\textwidth}
+        \centering
+        \includegraphics[width=.9\linewidth]{coef}
+        \caption{1 MISR channel regression on 36 MODIS channels}
+    \end{subfigure}
+    \caption{Mathematical Concept of Data Fusion}
+    \label{fig:fusion}
+\end{figure}
+
+\newpage
+\subsection{Predict $PM_{2.5}$ in High Resolution}
+According to \cite{paciorek2012}, \cite{you2015}, using satellite derived AOD to provide $PM_{2.5}$ estimations for urban areas has emerged as an important topic over the past decade. However, such estimation from space is susceptible to meteorological conditions and may result in large errors. Jointly using AOD and component retrieval from our research, could potentially solve this problem, since we have information about the aerosol size and other micro-physical properties of the aerosols. Also the operational MISR aerosol resolution is only 17.6km while we can potentially achieve 1.1km using our newest algorithm. This is especially useful in urban areas where heterogeneous $PM_{2.5}$ within a short distance is expected.
+
+On the other hand, as Paciorek and Liu also pointed out in \cite{liu2007}. "... discrepancies necessarily exist between satellite-retrieved estimates of AOD, which is an atmospheric-column average, and ground-level PM2.5." and "Statistical models that combined AOD, PM2.5 observations, and land-use and meteorologic variables were highly predictive of PM2.5 observations held out of the modeling, but AOD added little information beyond that provided by the other sources". These findings may limit the ability to validate AOD from $PM_{2.5}$ to certain extent. Most of the work done before are focused on temporal or spatial averages of AOD and $PM_{2.5}$. In our future work, we would like to explore the instantaneous predictivity of AOD on $PM_{2.5}$.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.9\textwidth]{asia-pm2-5}
+    \caption{Satellite-derived $PM_{2.5}$ from MISR and MODIS on a coarse spatial grid}
+    \label{fig:pm2_5}
+\end{figure}

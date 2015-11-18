@@ -1,0 +1,33 @@
+\section{Introduction}
+Atmospheric aerosols are a colloid of fine particles suspended in the air. They can be solid particles or liquid droplet, with sizes ranging from 0.01$\mu$m to around $50\mu$m. Aerosols occur mostly from natural processes (e.g. volcanoes, dust storms, forest fires, sea spray and etc.), but can also come from human activities (e.g. burning of fossil fuels). Despite their small overall proportion, artificial aerosols can dominate the atmosphere above urban and industrial regions, which can significantly affect human health and life expectancy \cite{Ulrich}. Aerosols with diameter less than $2.5\mu$m, also known as $PM_{2.5}$, are especially harmful to human respiratory system, as they penetrate into the gas exchange regions of the lung and very small particles ($<100$ nm) may pass through the lungs to affect other organs. Air pollution associated with excessive aerosols also obscures the air, and severely reduce visibility in the city. Profiling spatial distribution of aerosols at fine resolution is thus very much desirable, especially in urban areas with complex anthropogenic aerosol sources, such as vehicles, power plants, and factories that burn fossil fuels.
+
+\begin{figure}[h!]
+	\centering
+	\begin{subfigure}{.45\textwidth}
+		\centering
+		\includegraphics[width=.9\linewidth]{misr_cartoon}
+		\caption{MISR: multi-angle view}
+		\label{fig:MISR_cartoon}
+	\end{subfigure}
+	\begin{subfigure}{.45\textwidth}
+		\centering
+		\includegraphics[width=.9\linewidth]{aerosol_cartoon3}
+		\caption{Fog and Haze in California's San Joaquin Valley}
+		\label{fig:MISR_california}
+	\end{subfigure}
+	\caption{Pictorial introduction to MISR}
+	\label{fig:misr}
+\end{figure}
+
+One way of profiling aerosol is to measure the aerosol column amount. It is characterized by a quantity called Aerosol Optical Depth (AOD). When sunlight traverses through the atmosphere, the radiance flux is constantly scattered and absorbed by air molecules and aerosols. AOD is defined as the accumulated radiative energy loss along the sunlight's pathway toward the Earth surface (mathematical definition is available in Appendix \ref{apd:rt}).  Since it relates to scattering, AOD can be retrieved by measuring the solar reflectance from the scattering. The Multi-angle Imaging SpectroRadiometer (MISR) is a set of satellite instrument that measures such reflectance (Figure \ref{fig:MISR_cartoon}). It is aboard the polar-orbiting Spacecraft Terra, and is the first multi-angle and multi-spectral satellite radiometer. MISR is uniquely designed to have multiple viewing angles, which provides strong visual contrast of aerosol reflectance (Figure \ref{fig:MISR_california}). The wide range of its spectral coverage also exploits the wavelength dependency of aerosol opacity, which can be used to estimate the size distribution of the aerosol particulates. These enhanced features render MISR significant advantages over other remote-sensing instruments in terms of its capabilities in retrieving AOD. Figure \ref{fig:orbit} shows the orbit of MISR.
+
+To accurately retrieve AOD, correct aerosol types must be determined. An aerosol type is defined by a collection of micro-physical parameters such as sizes, geometrical shapes (spherical v.s. non-spherical), single-scattering albedo (absorption v.s. non-absorption) and etc. These parameters determine how the light interacts with aerosols in terms of its scattering angle and reflectivity. In fact, incorrect types of aerosols could result in un-physical absolute value and/or contradictory angular shapes of reflectance at the sensor.
+
+Quantitative retrieval of AOD also involves correct assumptions of surface boundary, as different types of surface could contribute dramatically different reflectance at the sensor. For example, dark water reflects almost no sunlight whereas iceberg reflects significant amount of sunlight. In 1998, Martonchik et.al. \cite{martonchik1998a} from the MISR science team proposed a framework where three distinct retrieval strategies were used depending on different surface boundaries. They have progressively less-well-constrained reflectance properties: dark water, dense dark vegetation (DDV), and heterogeneous land. Among large amount of MISR work thereafter, a series of particular improvement are focused on the third type of surface boundary: the heterogeneous land \cite{martonchik2002} \cite{diner2005} \cite{nancy_paper} \cite{taesup}. Our work is also on this track. We primarily limit our retrieval algorithms to be used on heterogeneous land only.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.8\textwidth]{orbit}
+    \caption{Schematic of Terra (EOS AM-1) orbit and MISR camera views}
+    \label{fig:orbit}
+\end{figure}

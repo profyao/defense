@@ -1,0 +1,20 @@
+\section{Conclusion}
+We summarize the main topics of this report:
+\begin{itemize}
+\item Surveyed the literature for MISR aerosol retrieval algorithms. Explained why a particular error minimization formula is used and its statistical implications for residuals in different channels.
+\item Demonstrated how RT solutions in a plane-parallel model can be applied to inversely compute aerosol attributes from MISR image. Explored the limitations of the 1-D plane model under different horizontal scales.
+\item Surveyed aerosol retrieval error sources from system hardware, to scattering models and to retrieval algorithms.
+\item Compared the posterior sample distribution of MCMC and Random Local Search. Demonstrated local complexity of the objective function.
+\item Demonstrated that, under the same spatial resolution, Bayesian approach has better spatial continuity, which not only fits better with AERONET ground measurement, but also has a natural interpretation.
+\item Applied RLS and NCA in optimization. The new methods are about $100$ times faster than MCMC while keeping as good accuracy.
+\item A stability analysis is performed for RLS, which indicates RLS is robust, and quite insensitive to the choice of step size for the proposal distribution.
+\item Demonstrated a parallel version of RLS, NCA and MCMC by virtue of batch-mode pixel update. The parallel algorithm is implemented both in Matlab and Spark. The parallelized algorithms gain further speed-up. The computational speed scales up with the number of cores up to 32.
+\item Mitigated AOD overestimation issue by adding back surface limiting form and setting up upper bound for path radiance.
+\item Push the spatial resolution of aerosol retrievals from 4.4km to 1.1km, by taking advantage of an important spectral property of surface reflectance.
+\item Investigated aerosol component retrievals by checking AOD values in all four spectral bands. Good agreement in visible bands in turn validates the self-consistency of aerosol components mixing vector results.
+\item Proposed three different topics for future work for the dissertation.
+
+\end{itemize}
+Air pollution as a tough societal problem in densely-populated cities dates back for centuries. In metropolitan areas, diesel engines, ports, motor vehicles, and industrial activities (e.g. coal-burning) emit large amount of smog (aerosols) into the air. The Great Smog of 1952 in London caused severe air pollution and killed thousands of people. Los Angeles, with a population of 18 million, has some of the most contaminated air in the United States. In China, air pollution has become a major problem, and poses a threat to Chinese public health. Comprehensive monitoring of air quality in these places is important. Compared to traditional monitoring methods which measure only limited samples on the ground, satellite remote sensing of aerosols has almost global coverage. It also has a much lower maintenance cost since no ground facility and staff are needed. Hence satellite remote sensing has obvious advantages over the ground-based methods.
+
+That said, our aerosol retrieval solutions provide high spatial resolution of the aerosol pollutants in urban areas. They help people avoid exposure to the polluted air, identify emission sources, detect a pollution event, and make informed decisions for outdoor activities. The aerosol information is also useful for policy makers in transportation regulation, environmental monitoring, urban planning and zoning. As urbanization continues to grow, we believe our aerosol retrieval technology has a prospective future for civilian application.
